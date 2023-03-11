@@ -232,4 +232,4 @@ class Highlight:
     user_id: int
     guild_id: int
     phrase: str
-    snooze_until: int
+    snooze_until: Optional[int]
