@@ -168,7 +168,7 @@ class Data(Cog):
             await conn.commit()
 
     async def get_user_highlight(self, guild: str, user: str, phrase: str):
-        async with self.conn.execute(f"SELECT * FROM highlights WHERE guild_id={guild} AND user_id={user} AND phrase={phrase}") as res:
+        async with self.conn.execute("SELECT * FROM highlights WHERE guild_id=? AND user_id=? AND phrase=?", (guild, user, phrase)) as res:
             data = await res.fetchone()
             if not data:
                 return None
@@ -176,7 +176,7 @@ class Data(Cog):
                 return Highlight(**data)
     
     async def list_user_highlights(self, guild: str, user: str):
-        async with self.conn.execute(f"SELECT * FROM highlights WHERE guild_id={guild} AND user_id={user}") as res:
+        async with self.conn.execute("SELECT * FROM highlights WHERE guild_id=?} AND user_id=?", (guild, user)) as res:
             data = await res.fetchall()
             highlights = []
 
@@ -188,36 +188,44 @@ class Data(Cog):
 
             return highlights
 
-    async def save_user_highlight(self, is_new_record: bool, guild: str, user: str, phrase: str, snooze_until: int | None):
+    async def save_user_highlight(self, is_new_record: bool, guild: str, user: str, phrase: str, snooze_until: Optional[int]):
         query = None
         if is_new_record:
-            query = f"INSERT INTO highlights (user_id, guild_id, phrase) VALUES ({guild}. {user}, {phrase})"
+            await self.conn.execute("INSERT INTO highlights (user_id, guild_id, phrase) VALUES (?, ?, ?)", (user, guild, phrase))
         else:
-            query = f"UPDATE highlights SET snooze_until = {snooze_until} WHERE guild_id={guild} AND user_id={user} AND phrase={phrase}"
-        
-        await self.conn.execute(query)
+            await self.conn.execute("UPDATE highlights SET snooze_until = ? WHERE guild_id=? AND user_id=? AND phrase=?", (snooze_until, guild, user, phrase))
+ 
         await self.conn.commit()
 
     async def delete_user_highlight(self, guild: str, user: str, phrase: str):
-        await self.conn.execute(f"DELETE FROM highlights WHERE guild_id={guild} AND user_id={user} AND phrase={phrase} LIMIT 1")
+        await self.conn.execute("DELETE FROM highlights WHERE guild_id=? AND user+id=? AND phrase=? LIMIT 1", (guild, user, phrase))
         await self.conn.commit()
 
     async def list_guild_highlights(self, guild: str, with_snoozed: bool):
-        query = f"SELECT * FROM highlights WHERE guild_id={guild}"
         if not with_snoozed:
-            query += f" AND (snoozed_until IS NULL OR snoozed_until < {int(time.time)})"
-        
-        async with self.conn.execute(query) as res:
-            data = await res.fetchall()
-            highlights = []
+            async with self.conn.execute("SELECT * FROM highlights WHERE guild_id=? AND (snoozed_until IS NULL OR snoozed_until < ?", (guild, int(time.time))) as res:
+                data = await res.fetchall()
+                highlights = []
 
-            if not data:
-                return []
+                if not data:
+                    return []
 
-            for row in data:
-                highlights.append(Highlight(**row))
+                for row in data:
+                    highlights.append(Highlight(**row))
                 
-            return highlights
+                return highlights
+        else:
+            async with self.conn.execute("SELECT * FROM highlights WHERE guild_id=?", (guild)) as res:
+                data = await res.fetchall()
+                highlights = []
+
+                if not data:
+                    return []
+
+                for row in data:
+                    highlights.append(Highlight(**row))
+                
+                return highlights
 
 
 
