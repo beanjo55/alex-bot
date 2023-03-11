@@ -11,6 +11,7 @@ jishaku~=2.5
 python-slugify[unidecode]~=4.0.1
 avwx-engine~=1.6.5
 mcstatus~=5.1.4
+python-dotenv~=1.0.0
 
 git+https://github.com/mralext20/geomag#egg=geomag
 pytz
