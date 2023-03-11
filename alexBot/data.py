@@ -188,7 +188,7 @@ class Data(Cog):
 
             return highlights
 
-    async def save_user_highlight(self, is_new_record: bool, guild: str, user: str, phrase: str, snooze_until: int):
+    async def save_user_highlight(self, is_new_record: bool, guild: str, user: str, phrase: str, snooze_until: int | None):
         query = None
         if is_new_record:
             query = f"INSERT INTO highlights (user_id, guild_id, phrase) VALUES ({guild}. {user}, {phrase})"
