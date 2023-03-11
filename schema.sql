@@ -22,7 +22,5 @@ CREATE TABLE IF NOT EXISTS highlights (
     guild_id BIGINT NOT NULL,
     phrase TEXT NOT NULL,
     snooze_until INT,
-    PRIMARY KEY (guild_id, user_id)
+    PRIMARY KEY (guild_id, user_id, phrase)
 )
-
-CREATE UNIQUE INDEX IF NOT EXISTS highlights_guild_user_phrase_idx on highlights (guild_id, user_id, phrase)
