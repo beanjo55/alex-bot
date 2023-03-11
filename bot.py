@@ -7,6 +7,9 @@ import re
 import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
+from dotenv import load_dotenv
+
+load_dotenv()
 
 import aiohttp
 import discord
@@ -69,6 +72,9 @@ class Bot(commands.Bot):
         self.handler = handler
         self.voiceCommandsGroup = app_commands.Group(
             name="voice", description="Voice related commands", guild_only=True
+        )
+        self.highlightsCommandsGroup = app_commands.Group(
+            name="highlights", descriptions="Manage your highlights in the server", guild_only=True
         )
         self.tree.add_command(self.voiceCommandsGroup)
 
