@@ -1,15 +1,24 @@
 import dataclasses
 import json
+import time
 from typing import List, Optional
 
 import aiosqlite
 
-from alexBot.classes import ButtonRole, ButtonType, FeedConfig, GuildData, MovieSuggestion, RecurringReminder, UserData
+from alexBot.classes import ButtonRole, ButtonType, FeedConfig, GuildData, MovieSuggestion, RecurringReminder, UserData, Highlight
 
 from .tools import Cog
 
 
 class Data(Cog):
+    async def cog_load(self):
+        async with aiosqlite.connect(self.bot.config.db or 'configs.db') as conn:
+            self.conn = conn
+    
+    async def cog_unload(self):
+        await self.conn.close()
+        self.conn = None
+
     async def get_guild_data(self, guildId: int) -> GuildData:
         """
         used to retrive a GuildData from the database. see save_guild_data to save it back.
@@ -157,6 +166,59 @@ class Data(Cog):
                     "INSERT INTO recurringReminders (data) VALUES (?)", (json.dumps(dataclasses.asdict(reminder)),)
                 )
             await conn.commit()
+
+    async def get_user_highlight(self, guild: str, user: str, phrase: str):
+        async with self.conn.execute(f"SELECT * FROM highlights WHERE guild_id={guild} AND user_id={user} AND phrase={phrase}") as res:
+            data = await res.fetchone()
+            if not data:
+                return None
+            else:
+                return Highlight(**data)
+    
+    async def list_user_highlights(self, guild: str, user: str):
+        async with self.conn.execute(f"SELECT * FROM highlights WHERE guild_id={guild} AND user_id={user}") as res:
+            data = await res.fetchall()
+            highlights = []
+
+            if not data:
+                return []
+                
+            for row in data:
+                highlights.append(Highlight(**row))
+
+            return highlights
+
+    async def save_user_highlight(self, is_new_record: bool, guild: str, user: str, phrase: str, snooze_until: int):
+        query = None
+        if is_new_record:
+            query = f"INSERT INTO highlights (user_id, guild_id, phrase) VALUES ({guild}. {user}, {phrase})"
+        else:
+            query = f"UPDATE highlights SET snooze_until = {snooze_until} WHERE guild_id={guild} AND user_id={user} AND phrase={phrase}"
+        
+        await self.conn.execute(query)
+        await self.conn.commit()
+
+    async def delete_user_highlight(self, guild: str, user: str, phrase: str):
+        await self.conn.execute(f"DELETE FROM highlights WHERE guild_id={guild} AND user_id={user} AND phrase={phrase} LIMIT 1")
+        await self.conn.commit()
+
+    async def list_guild_highlights(self, guild: str, with_snoozed: bool):
+        query = f"SELECT * FROM highlights WHERE guild_id={guild}"
+        if not with_snoozed:
+            query += f" AND (snoozed_until IS NULL OR snoozed_until < {int(time.time)})"
+        
+        async with self.conn.execute(query) as res:
+            data = await res.fetchall()
+            highlights = []
+
+            if not data:
+                return []
+
+            for row in data:
+                highlights.append(Highlight(**row))
+                
+            return highlights
+
 
 
 async def setup(bot):
