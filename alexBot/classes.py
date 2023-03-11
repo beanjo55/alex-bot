@@ -226,3 +226,10 @@ class SugeryUser:
     thresholds: Thresholds = None
     lastGroup: SugeryZone = None
     constantAlerts: int = None
+
+@dataclass
+class Highlight:
+    user_id: int
+    guild_id: int
+    phrase: str
+    snooze_until: int
